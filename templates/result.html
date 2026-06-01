@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Resume Scanner - Results</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        body.light-mode {
+            background: #f0f4f8 !important;
+            color: #1a1a1a !important;
+        }
+        body.light-mode .card {
+            background: #ffffff !important;
+            color: #1a1a1a !important;
+        }
+        body.light-mode .score-value {
+            color: #1a3a6b !important;
+        }
+        body.light-mode .score-label {
+            color: #1a3a6b !important;
+        }
+        body.light-mode .score-value {
+            color: #ffffff !important;
+            font-size: 1.4rem !important;
+            text-shadow: 1px 1px 3px #000000 !important;
+        }
+        body.light-mode h1, 
+        body.light-mode h2, 
+        body.light-mode h3 {
+            color: #1a3a6b !important;
+        }
+        body.light-mode p {
+            color: #333 !important;
+        }
+        .toggle-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #1a3a6b;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        .toggle-btn:hover {
+            background: #2a4a8b;
+        }
+        body.light-mode .extra-card {
+            background: #ffffff !important;
+            color: #1a1a1a !important;
+        }
+        body.light-mode .extra-card h2 {
+            color: #1a3a6b !important;
+        }
+        body.light-mode .extra-card p {
+            color: #333 !important;
+        }
+        body.light-mode .extra-card table {
+            color: #1a1a1a !important;
+        }
+        body.light-mode .role-card {
+            background: #e8f0fe !important;
+            color: #1a1a1a !important;
+        }
+        body.light-mode .role-card h3 {
+            color: #1a3a6b !important;
+        }
+    </style>
+</head>
+<body>
+    <button class="toggle-btn" onclick="toggleMode()" id="modeBtn">
+        🌙 Dark Mode
+    </button>
+    <div class="container">
+        <header>
+            <h1>Analysis Report</h1>
+            <p class="subtitle">Detailed breakdown of skill matches, gaps, and semantic alignment</p>
+            <div class="nav-links">
+                <a href="{{ url_for('index') }}" class="nav-link">← Scan Another Resume</a>
+                <a href="{{ url_for('dashboard') }}" class="nav-link">History Dashboard</a>
+            </div>
+        </header>
+
+        <main>
+            <!-- Card 1: Score Summary -->
+            <div class="card result-card">
+                <div class="result-header">
+                    <div>
+                        <h2>File Evaluated</h2>
+                        <p class="filename-display">{{ filename }}</p>
+                    </div>
+                    <div class="score-circle-container">
+                        <div class="score-circle" id="scoreCircle">
+                            <span class="score-value">{{ match_percent }}%</span>
+                        </div>
+                        <p class="score-label">Match Score</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 2: Skill Gaps Grids -->
+            <div class="card">
+                <div class="results-columns">
+                    <!-- Matched Skills (Green) -->
+                    <div>
+                        <h3 class="skills-heading green-text">✓ Matched Skills ({{ matched|length }})</h3>
+                        {% if matched %}
+                            <div class="skills-grid">
+                                {% for skill in matched %}
+                                    <span class="skill-tag matched">{{ skill }}</span>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <p style="color: var(--text-muted); font-size: 0.95rem;">No matching target skills found.</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Missing Skills (Red) -->
+                    <div>
+                        <h3 class="skills-heading red-text">✗ Missing Skills ({{ missing|length }})</h3>
+                        {% if missing %}
+                            <div class="skills-grid">
+                                {% for skill in missing %}
+                                    <span class="skill-tag missing">{{ skill }}</span>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <p style="color: var(--text-success); font-size: 0.95rem; font-weight: 500;">Excellent! All target skills are present.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Grade Card -->
+            <div class="card" style="text-align: center; padding: 30px;">
+                <h2 style="color: white; margin-bottom: 15px;">📊 Resume Grade</h2>
+                <div style="font-size: 100px; font-weight: bold;
+                     color: {{ grade_color }}; line-height: 1;">
+                    {{ grade }}
+                </div>
+                <p style="font-size: 24px; color: {{ grade_color }};
+                   margin-top: 10px;">
+                    {{ grade_msg }}
+                </p>
+            </div>
+
+            <!-- Card 3: Bar Chart Image -->
+            {% if missing %}
+                <div class="card">
+                    <h3 class="skills-heading">Missing Skills Distribution</h3>
+                    <p style="color: var(--text-muted); margin-bottom: 1.5rem; font-size: 0.95rem;">
+                        This visualization ranks the top missing skills identified in the resume scan. Focus on these areas for improvement.
+                    </p>
+                    <div class="chart-container">
+                        <img class="chart-img" src="{{ chart_url }}?t={{ range(1, 1000000)|random }}" alt="Missing Skills Priority Chart">
+                    </div>
+                </div>
+            {% endif %}
+        </main>
+    </div>
+
+    <script>
+        // Set dynamic conic gradient progress for score circle
+        document.addEventListener('DOMContentLoaded', () => {
+            const percent = parseFloat('{{ match_percent }}') || 0;
+            const circle = document.getElementById('scoreCircle');
+            if (circle) {
+                circle.style.background = `conic-gradient(var(--primary) ${percent}%, rgba(255, 255, 255, 0.05) ${percent}%)`;
+            }
+        });
+
+        // Dark/Light Mode Toggle
+        function toggleMode() {
+            const body = document.body;
+            const btn = document.getElementById('modeBtn');
+            if (body.classList.contains('light-mode')) {
+                body.classList.remove('light-mode');
+                btn.textContent = '🌙 Dark Mode';
+                localStorage.setItem('mode', 'dark');
+            } else {
+                body.classList.add('light-mode');
+                btn.textContent = '☀️ Light Mode';
+                localStorage.setItem('mode', 'light');
+            }
+        }
+
+        // Page load pe mode yaad rakho
+        window.onload = function() {
+            const savedMode = localStorage.getItem('mode');
+            if (savedMode === 'light') {
+                document.body.classList.add('light-mode');
+                document.getElementById('modeBtn').textContent = '☀️ Light Mode';
+            }
+        }
+    </script>
+
+<!-- Job Role Suggester -->
+<div class="card extra-card" style="margin: 20px; padding: 25px; border-radius: 12px;">
+    <h2 style="color: white;">💼 Suggested Job Roles</h2>
+    <p style="color: #aaa;">Based on your current skills!</p>
+    
+    {% for role in role_suggestions %}
+    <div class="role-card" style="border-radius: 10px;
+         padding: 15px; margin: 10px 0;
+         border-left: 4px solid #1a3a6b;
+         background: #1a2a3a;">
+        
+        <div style="display: flex; justify-content: space-between;
+             align-items: center;">
+            <h3 style="color: white; margin: 0;">
+                {{ role.emoji }} {{ role.role }}
+            </h3>
+            <span style="background: #1a3a6b; color: white;
+                  padding: 5px 15px; border-radius: 20px;
+                  font-weight: bold;">
+                {{ role.match_pct }}% Match
+            </span>
+        </div>
+        
+        <p style="color: #4fc3f7; margin: 8px 0;">
+            💰 Salary: {{ role.salary }}
+        </p>
+        
+        {% if role.matched %}
+        <p style="color: #00c853; margin: 5px 0; font-size: 0.9rem;">
+            ✅ Matched: {{ role.matched | join(", ") }}
+        </p>
+        {% endif %}
+        
+        {% if role.missing %}
+        <p style="color: #ff6d00; margin: 5px 0; font-size: 0.9rem;">
+            ❌ Still Need: {{ role.missing | join(", ") }}
+        </p>
+        {% endif %}
+        
+    </div>
+    {% endfor %}
+    
+    {% if not role_suggestions %}
+    <p style="color: #aaa;">Add more skills to get job suggestions!</p>
+    {% endif %}
+</div>
+
+    <!-- Voice Result -->
+<div class="card extra-card" style="margin: 20px; padding: 20px; border-radius: 12px;">
+    <h2 style="color: white;">🔊 Voice Summary</h2>
+    <audio controls style="width: 100%; margin-top: 10px;">
+        <source src="{{ audio_url }}" type="audio/mpeg">
+    </audio>
+</div>
+
+<!-- Weekly Learning Path -->
+<div class="card extra-card" style="margin: 20px; padding: 20px; border-radius: 12px;">
+    <h2 style="color: white;">📅 Weekly Learning Path</h2>
+    <p style="color: #aaa;">Follow this plan to fill your skill gaps!</p>
+    <table style="width:100%; border-collapse: collapse; color: white;">
+        <tr style="background: #1a3a6b;">
+            <th style="padding: 10px;">Week</th>
+            <th style="padding: 10px;">Skill</th>
+            <th style="padding: 10px;">Course</th>
+            <th style="padding: 10px;">Time</th>
+        </tr>
+        {% for item in weekly_plan %}
+        <tr style="border-bottom: 1px solid #333;">
+            <td style="padding: 10px; text-align:center;">
+                Week {{ item.week }}
+            </td>
+            <td style="padding: 10px;">{{ item.skill }}</td>
+            <td style="padding: 10px;">
+                <a href="{{ item.link }}" target="_blank" 
+                   style="color: #4fc3f7;">
+                    {{ item.course }}
+                </a>
+            </td>
+            <td style="padding: 10px; text-align:center;">
+                {{ item.time }}
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+</body>
+</html>

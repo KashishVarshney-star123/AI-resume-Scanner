@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Resume Scanner - Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        body.light-mode { background: #f0f4f8 !important; color: #1a1a1a !important; }
+        body.light-mode .card { background: #ffffff !important; color: #1a1a1a !important; }
+        body.light-mode h1, body.light-mode h2, body.light-mode h3 { color: #1a3a6b !important; }
+        body.light-mode p { color: #333 !important; }
+        body.light-mode td { color: #1a1a1a !important; }
+        .toggle-btn {
+            position: fixed; top: 20px; right: 20px;
+            background: #1a3a6b; color: white; border: none;
+            padding: 10px 20px; border-radius: 25px;
+            cursor: pointer; font-size: 16px; z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        .toggle-btn:hover { background: #2a4a8b; }
+        table { width: 100%; border-collapse: collapse; }
+        th { background: #1a3a6b; color: white; padding: 12px; text-align: left; }
+        td { padding: 12px; color: white; border-bottom: 1px solid #333; }
+    </style>
+</head>
+<body>
+    <button class="toggle-btn" onclick="toggleMode()" id="modeBtn">🌙 Dark Mode</button>
+    <div class="container">
+        <header>
+            <h1>Scanner Dashboard</h1>
+            <p class="subtitle">Historical resume match reports and cumulative gap metrics</p>
+            <div class="nav-links">
+                <a href="{{ url_for('index') }}" class="nav-link">← Upload & Scan Resume</a>
+            </div>
+        </header>
+        <main>
+            {% if history %}
+                <div class="card">
+                    <h3 class="skills-heading">Frequently Missing Skills Profile</h3>
+                    <p style="color: var(--text-muted); margin-bottom: 1.5rem; font-size: 0.95rem;">
+                        Top 5 missing skills from all scans.
+                    </p>
+                    <div class="chart-container">
+                        <img class="chart-img" src="{{ chart_url }}?t={{ range(1, 1000000)|random }}" alt="Chart">
+                    </div>
+                </div>
+                <div class="card">
+                    <h3 class="skills-heading" style="margin-bottom: 1.25rem;">
+                        Scan History Log ({{ history|length }})
+                    </h3>
+                    <div style="overflow-x: auto;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Scan Date</th>
+                                    <th>Filename</th>
+                                    <th>Match %</th>
+                                    <th>Matched Skills</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in history %}
+                                <tr>
+                                    <td>{{ item.scan_date }}</td>
+                                    <td>{{ item.filename }}</td>
+                                    <td>
+                                        {% if item.match_percent >= 75 %}
+                                            <span style="background:#1a6b3a; padding:3px 10px; border-radius:10px; color:white;">
+                                                {{ item.match_percent }}%
+                                            </span>
+                                        {% else %}
+                                            <span style="background:#6b4a1a; padding:3px 10px; border-radius:10px; color:white;">
+                                                {{ item.match_percent }}%
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ item.matched_skills }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            {% else %}
+                <div class="card" style="text-align:center; padding:40px;">
+                    <h2>No Scan History Available</h2>
+                    <p>Upload and scan a resume to populate history.</p>
+                    <a href="{{ url_for('index') }}"
+                       style="background:#1a3a6b; color:white; padding:10px 25px;
+                              border-radius:8px; text-decoration:none;">
+                        Scan Resume Now
+                    </a>
+                </div>
+            {% endif %}
+        </main>
+    </div>
+    <script>
+        function toggleMode() {
+            const body = document.body;
+            const btn = document.getElementById('modeBtn');
+            if (body.classList.contains('light-mode')) {
+                body.classList.remove('light-mode');
+                btn.textContent = '🌙 Dark Mode';
+                localStorage.setItem('mode', 'dark');
+            } else {
+                body.classList.add('light-mode');
+                btn.textContent = '☀️ Light Mode';
+                localStorage.setItem('mode', 'light');
+            }
+        }
+        window.onload = function() {
+            const savedMode = localStorage.getItem('mode');
+            if (savedMode === 'light') {
+                document.body.classList.add('light-mode');
+                document.getElementById('modeBtn').textContent = '☀️ Light Mode';
+            }
+        }
+    </script>
+</body>
+</html>

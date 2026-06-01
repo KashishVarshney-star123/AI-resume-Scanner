@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Resume Scanner - Home</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>AI Resume Scanner</h1>
+            <p class="subtitle">Evaluate and match your resume against industry-standard job requirements</p>
+            <div class="nav-links">
+                <a href="{{ url_for('index') }}" class="nav-link active">Home</a>
+                <a href="{{ url_for('dashboard') }}" class="nav-link">History Dashboard</a>
+            </div>
+        </header>
+
+        <main>
+            <!-- Card 1: File Upload Form -->
+            <div class="card">
+                <h2 class="card-title">Upload Your Resume</h2>
+                <p style="color: var(--text-muted); margin-bottom: 1.5rem;">
+                    Upload your resume in PDF or DOCX format to scan and analyze your skills matching score.
+                </p>
+                <form action="{{ url_for('upload_file') }}" method="POST" enctype="multipart/form-data">
+                    <div class="upload-zone" id="uploadZone">
+                        <span class="upload-icon">📁</span>
+                        <h3>Drag & Drop Resume Here</h3>
+                        <p style="color: var(--text-muted); margin-top: 0.5rem; font-size: 0.9rem;">
+                            or click to browse from local computer
+                        </p>
+                        <input type="file" id="resumeFile" name="resume" accept=".pdf,.docx" style="display: none;" onchange="this.form.submit()">
+                    </div>
+                </form>
+            </div>
+
+            <!-- Card 2: Skill Inventory -->
+            <div class="card">
+                <h2 class="card-title">Target Job Description Skills</h2>
+                <p style="color: var(--text-muted); margin-bottom: 1.5rem;">
+                    The scanner compares your resume text with the following predefined professional skill profile:
+                </p>
+                <div class="skills-grid">
+                    {% for skill in jd_skills %}
+                        <span class="skill-tag">{{ skill }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const uploadZone = document.getElementById('uploadZone');
+        const fileInput = document.getElementById('resumeFile');
+        
+        uploadZone.addEventListener('click', () => fileInput.click());
+        
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.style.borderColor = '#3b82f6';
+            uploadZone.style.background = 'rgba(26, 58, 107, 0.1)';
+        });
+
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.style.borderColor = 'rgba(26, 58, 107, 0.4)';
+            uploadZone.style.background = 'rgba(255, 255, 255, 0.02)';
+        });
+
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            if (e.dataTransfer.files.length > 0) {
+                fileInput.files = e.dataTransfer.files;
+                uploadZone.querySelector('h3').textContent = 'Uploading: ' + e.dataTransfer.files[0].name;
+                fileInput.form.submit();
+            }
+        });
+    </script>
+</body>
+</html>
